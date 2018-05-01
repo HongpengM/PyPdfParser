@@ -64,9 +64,9 @@ class Translator(object):
         translatedTxt = ''
         for i in _:
             try:
-                if _split_paragraph:
+                if _split_paragraph and i:
                     translatedTxt += i + '\n'
-                else:
+                elif i:
                     translatedTxt += i
             except TypeError:
                 if len(translatedTxt) < 20:

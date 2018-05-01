@@ -3,6 +3,7 @@ import re
 import os
 import translator
 import docx
+import summarizer
 
 
 class pdfParser(object):
@@ -12,6 +13,9 @@ class pdfParser(object):
         super(pdfParser, self).__init__()
         if filehandle:
             self.open(filehandle)
+        if not os.path.isdir('tmp'):
+            os.mkdir('tmp')
+        self.tempPath = 'tmp'
 
     def open(self, filehandle):
         if 'pdf' in filehandle:
@@ -24,33 +28,47 @@ class pdfParser(object):
         return self.pdfReader
 
     def decodePages(self):
-        pages = []
-        for i in range(self.pdfReader.numPages):
-            content = self.pdfReader.getPage(i).extractText().encode(
-                'gbk', 'ignore').decode('gbk', 'ignore')
-            pages.append(content)
-        print(len(self.pdfReader.getPage(i).extractText().encode(
-            'gbk', 'ignore').decode('gbk', 'ignore')))
-        self.pages = pages
-        print(len(pages))
+        if os.path.isfile(os.path.join(self.tempPath, self.outputname + '_decoded.txt')):
+            with open(os.path.join(self.tempPath, self.outputname + '_decoded.txt')) as f:
+                txt = f.read()
+            self.pages = txt
+        else:
+            pages = []
+            for i in range(self.pdfReader.numPages):
+                content = self.pdfReader.getPage(i).extractText().encode(
+                    'gbk', 'ignore').decode('gbk', 'ignore')
+                pages.append(content)
+            print(len(self.pdfReader.getPage(i).extractText().encode(
+                'gbk', 'ignore').decode('gbk', 'ignore')))
+            self.pages = pages
+            print(len(pages))
+            self.writeTxt(outPath=self.tempPath,
+                          filename=self.outputname + '_decoded.txt', translated=False)
         return pages
 
     def washData(self):
-        _ = []
-        for page in self.pages:
-            # . \n marked by ####
-            newpage = re.sub(r'[\.] *?\n', '####', page)
-            # \S\n\S replaced by \S\S
-            newpage = re.sub(r'(\S)\n(\S)', r'\1' + r'\2', newpage)
-            # , \n|; \n replaced by , |;
-            newpage = re.sub(r'([,|;] )\n', r'\1', newpage)
-            # \s
-            # newpage = re.sub(r'\s+?\n', ' ', newpage)
-            # newpage = re.sub(r'\n\s+?', ' ', newpage)
-            newpage = re.sub(r'\n', ' ', newpage)
-            newpage = newpage.replace('####', '.\n')
-            _.append(newpage)
-        self.pages = _
+        if os.path.isfile(os.path.join(self.tempPath, self.outputname + '_washed.txt')):
+            with open(os.path.join(self.tempPath, self.outputname + '_washed.txt')) as f:
+                txt = f.read()
+            self.pages = txt
+        else:
+            _ = []
+            for page in self.pages:
+                # . \n marked by ####
+                newpage = re.sub(r'[\.] *?\n', '####', page)
+                # \S\n\S replaced by \S\S5
+                newpage = re.sub(r'(\S)\n(\S)', r'\1' + r'\2', newpage)
+                # , \n|; \n replaced by , |;
+                newpage = re.sub(r'([,|;] )\n', r'\1', newpage)
+                # \s
+                # newpage = re.sub(r'\s+?\n', ' ', newpage)
+                # newpage = re.sub(r'\n\s+?', ' ', newpage)
+                newpage = re.sub(r'\n', ' ', newpage)
+                newpage = newpage.replace('####', '.\n')
+                _.append(newpage)
+            self.pages = _
+            self.writeTxt(outPath=self.tempPath,
+                          filename=self.outputname + '_washed.txt', translated=False)
         return _
 
     def autoTranslate(self):
@@ -92,6 +110,24 @@ class pdfParser(object):
         with open(os.path.join(outPath, filename), 'w') as f:
             f.write(lines)
 
+    def abstract(self, outPath='.', filename='abstract.docx', translated=True):
+        if self.outputname:
+            filename = self.outputname + '_abstract.docx'
+        doc_new = docx.Document()
+        txt = ''
+        for i in self.pages:
+            txt += i
+        summer = summarizer.StatisticalSummarizer()
+        summary = summer.summarize(txt)
+
+        for k in summary.keys():
+            summaryTxt = ''
+            summaryTxt += str(k) + '\n'
+            for i in summary[k]:
+                summaryTxt += str(i) + '\n'
+            doc_new.add_paragraph(summaryTxt)
+        doc_new.save(os.path.join(outPath, filename))
+
     def writeWord(self, outPath='.', filename='output.docx', translated=True):
         if self.outputname:
             filename = self.outputname + '.docx'
@@ -113,5 +149,7 @@ if __name__ == '__main__':
     reader.washData()
     reader.writeTxt(filename='2.txt')
     reader.translate()
+
     reader.writeTxt(filename='3.txt')
     reader.writeWord()
+    reader.abstract()
