@@ -13,10 +13,11 @@ _default_appid_file = 'translator.appid'
 class Translator(object):
     """docstring for Translator"""
 
-    def __init__(self, api='baidu', appid=_default_appid_file):
+    def __init__(self, api='baidu', appid=_default_appid_file, toLang='zh'):
         super(Translator, self).__init__()
         if api == 'baidu':
             self.translateMethod = self._translateByBaidu
+            self.toLang = toLang
         try:
             self.appid, self.key = Translator.readAppid(file=appid)
         except FileNotFoundError:
@@ -60,7 +61,7 @@ class Translator(object):
         else:
             text = chunkstring(text, 1500)
         for i in text:
-            _.append(self.translateMethod(i))
+            _.append(self.translateMethod(i, toLang=self.toLang))
         translatedTxt = ''
         for i in _:
             try:

@@ -128,7 +128,7 @@ class pdfParser(object):
             doc_new.add_paragraph(summaryTxt)
         doc_new.save(os.path.join(outPath, filename))
 
-    def writeWord(self, outPath='.', filename='output.docx', translated=True):
+    def writeDocx(self, outPath='.', filename='output.docx', translated=True):
         if self.outputname:
             filename = self.outputname + '.docx'
         doc_new = docx.Document()
@@ -151,5 +151,5 @@ if __name__ == '__main__':
     reader.translate()
 
     reader.writeTxt(filename='3.txt')
-    reader.writeWord()
+    reader.writeDocx()
     reader.abstract()
